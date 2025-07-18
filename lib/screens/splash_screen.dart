@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import 'auth/login_screen.dart';
-import 'home_screen.dart';
+import '../services/api/logout_service.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -46,17 +45,17 @@ class _SplashScreenState extends State<SplashScreen>
     // Wait for animation to complete
     await Future.delayed(Duration(seconds: 3));
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.checkAuthStatus();
+    // Check login status using LogoutService
+    final isLoggedIn = await LogoutService.isLoggedIn();
 
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder:
-              (context) =>
-                  authProvider.isAuthenticated ? HomeScreen() : LoginScreen(),
-        ),
-      );
+      if (isLoggedIn) {
+        // User is logged in, navigate to home
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        // User is not logged in, navigate to login
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
     }
   }
 
