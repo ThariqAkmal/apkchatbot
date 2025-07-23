@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api/logout_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -50,8 +51,17 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (mounted) {
       if (isLoggedIn) {
-        // User is logged in, navigate to home
-        Navigator.of(context).pushReplacementNamed('/home');
+        // User is logged in, check if provider is selected
+        final prefs = await SharedPreferences.getInstance();
+        final selectedProvider = prefs.getString('selected_provider');
+
+        if (selectedProvider != null) {
+          // Provider already selected, navigate to home
+          Navigator.of(context).pushReplacementNamed('/home');
+        } else {
+          // Provider not selected, navigate to provider selection
+          Navigator.of(context).pushReplacementNamed('/provider-selection');
+        }
       } else {
         // User is not logged in, navigate to login
         Navigator.of(context).pushReplacementNamed('/login');

@@ -3,6 +3,7 @@ import 'package:difychatbot/utils/string_capitalize.dart';
 import 'package:difychatbot/constants/app_colors.dart';
 import 'package:difychatbot/services/n8n/prompt_api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api/logout_service.dart';
 import '../models/chat_message.dart';
 import '../models/me_response.dart';
@@ -25,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // User data variables
   UserData? currentUser;
   bool isLoading = true;
-  bool isChangingProvider = false; // Loading state untuk provider change
   bool isClearingChat = false; // Loading state untuk clear chat
   bool isAiThinking = false; // Loading state untuk AI response
   String? errorMessage;
@@ -57,6 +57,37 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadSelectedProvider();
+  }
+
+  bool _hasLoadedProvider = false;
+
+  Future<void> _loadSelectedProvider() async {
+    if (_hasLoadedProvider) return;
+    _hasLoadedProvider = true;
+
+    // Get provider from route arguments or SharedPreferences
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args['provider'] != null) {
+      setState(() {
+        _selectedProvider = args['provider'];
+      });
+    } else {
+      // Fallback to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final savedProvider = prefs.getString('selected_provider');
+      if (savedProvider != null) {
+        setState(() {
+          _selectedProvider = savedProvider;
+        });
+      }
+    }
   }
 
   Future<void> initUser() async {
@@ -196,148 +227,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       _scrollToBottom();
       print('Error sending message: $e');
-    }
-  }
-
-  void _showProviderSelectionDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: AppColors.secondaryBackground,
-              title: Text(
-                'Pilih AI Provider',
-                style: TextStyle(color: AppColors.primaryText),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isChangingProvider)
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          CircularProgressIndicator(color: AppColors.accent),
-                          SizedBox(height: 8),
-                          Text(
-                            'Mengganti provider...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.secondaryTextLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else ...[
-                    ListTile(
-                      leading: Icon(
-                        Icons.smart_toy,
-                        color:
-                            _selectedProvider == 'DIFY'
-                                ? AppColors.accent
-                                : AppColors.secondaryTextDark,
-                      ),
-                      title: Text(
-                        'DIFY',
-                        style: TextStyle(color: AppColors.primaryText),
-                      ),
-                      subtitle: Text(
-                        'Dify AI Platform',
-                        style: TextStyle(color: AppColors.secondaryTextLight),
-                      ),
-                      trailing:
-                          _selectedProvider == 'DIFY'
-                              ? Icon(
-                                Icons.check_circle,
-                                color: AppColors.accent,
-                              )
-                              : null,
-                      onTap: () => _changeProvider('DIFY', setDialogState),
-                    ),
-                    ListTile(
-                      leading: Icon(
-                        Icons.account_tree,
-                        color:
-                            _selectedProvider == 'N8N'
-                                ? AppColors.success
-                                : AppColors.secondaryTextDark,
-                      ),
-                      title: Text(
-                        'N8N',
-                        style: TextStyle(color: AppColors.primaryText),
-                      ),
-                      subtitle: Text(
-                        'N8N Workflow Platform',
-                        style: TextStyle(color: AppColors.secondaryTextLight),
-                      ),
-                      trailing:
-                          _selectedProvider == 'N8N'
-                              ? Icon(
-                                Icons.check_circle,
-                                color: AppColors.success,
-                              )
-                              : null,
-                      onTap: () => _changeProvider('N8N', setDialogState),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                if (!isChangingProvider)
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Tutup',
-                      style: TextStyle(color: AppColors.accent),
-                    ),
-                  ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _changeProvider(
-    String newProvider,
-    StateSetter setDialogState,
-  ) async {
-    if (_selectedProvider == newProvider) {
-      Navigator.pop(context);
-      return;
-    }
-
-    // Mulai loading
-    setDialogState(() {
-      isChangingProvider = true;
-    });
-    setState(() {
-      isChangingProvider = true;
-    });
-
-    try {
-      // Simulasi proses penggantian provider (bisa ditambah validasi koneksi dll)
-      await Future.delayed(Duration(milliseconds: 1500));
-
-      // Update provider
-      setState(() {
-        _selectedProvider = newProvider;
-        isChangingProvider = false;
-      });
-
-      // Tutup dialog
-      Navigator.pop(context);
-    } catch (e) {
-      // Jika terjadi error
-      setState(() {
-        isChangingProvider = false;
-      });
-
-      Navigator.pop(context);
     }
   }
 
@@ -481,9 +370,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Intercept back button dan arahkan ke provider selection
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/provider-selection',
+          (route) => false,
+        );
+        return false; // Mencegah pop default
+      },
+      child: Scaffold(
       backgroundColor: AppColors.primaryBackground,
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/provider-selection',
+              (route) => false,
+            );
+          },
+        ),
         title: Row(
           children: [
             Container(
@@ -513,34 +422,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Row(
                   children: [
-                    if (isChangingProvider) ...[
-                      SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.secondaryTextLight,
-                          ),
-                        ),
+                    Text(
+                      'Provider: ${_selectedProvider.toUpperCase()}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryText,
                       ),
-                      SizedBox(width: 6),
-                      Text(
-                        'Mengganti provider...',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.secondaryTextLight,
-                        ),
-                      ),
-                    ] else
-                      Text(
-                        'Provider: ${_selectedProvider.toUpperCase()}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryText,
-                        ),
-                      ),
+                    ),
                   ],
                 ),
               ],
@@ -560,35 +449,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 await LogoutService.confirmLogout(context);
               } else if (value == 'clear') {
                 _showClearChatConfirmation();
-              } else if (value == 'provider' && !isChangingProvider) {
-                _showProviderSelectionDialog();
+              } else if (value == 'change_provider') {
+                // Navigate back to provider selection
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/provider-selection',
+                  (route) => false,
+                );
               }
             },
             itemBuilder: (BuildContext context) {
               return [
                 PopupMenuItem<String>(
-                  value: 'provider',
-                  enabled: !isChangingProvider,
+                  value: 'change_provider',
                   child: Row(
                     children: [
                       Icon(
-                        Icons.swap_horiz,
-                        color:
-                            isChangingProvider
-                                ? AppColors.secondaryTextDark
-                                : AppColors.accent,
+                        Icons.swap_horizontal_circle,
+                        color: AppColors.accent,
                       ),
                       SizedBox(width: 8),
                       Text(
-                        isChangingProvider
-                            ? 'Mengganti Provider...'
-                            : 'Pilih Provider',
-                        style: TextStyle(
-                          color:
-                              isChangingProvider
-                                  ? AppColors.secondaryTextDark
-                                  : AppColors.primaryText,
-                        ),
+                        'Ganti Provider',
+                        style: TextStyle(color: AppColors.primaryText),
                       ),
                     ],
                   ),
@@ -687,6 +570,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+      ), // Penutup untuk WillPopScope
     );
   }
 }

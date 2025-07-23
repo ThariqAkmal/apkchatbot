@@ -1,5 +1,7 @@
 import 'package:difychatbot/screens/auth/login_screen.dart';
 import 'package:difychatbot/screens/home_screen.dart';
+import 'package:difychatbot/screens/provider_selection_screen.dart';
+import 'package:difychatbot/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
@@ -53,6 +55,8 @@ class MyApp extends StatelessWidget {
         routes: {
           '/': (context) => const SplashScreen(),
           '/login': (context) => LoginScreen(),
+          '/provider-selection': (context) => ProviderSelectionScreen(),
+          '/profile': (context) => ProfileScreen(),
           '/home': (context) => HomeScreen(),
         },
       ),

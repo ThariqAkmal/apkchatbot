@@ -2,7 +2,6 @@ import 'package:difychatbot/services/api/login_api_service.dart';
 import 'package:difychatbot/services/api/me_api_service.dart';
 import 'package:difychatbot/constants/app_colors.dart';
 import 'package:flutter/material.dart';
-import '../home_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -113,10 +112,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
 
-          // Navigate to home after a short delay
+          // Navigate to provider selection after a short delay
           Future.delayed(Duration(milliseconds: 300), () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => HomeScreen()),
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/provider-selection',
+              (route) => false,
             );
           });
         } else {
