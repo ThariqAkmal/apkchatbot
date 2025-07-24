@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+import 'dart:convert';
 import 'package:difychatbot/services/api/me_api_service.dart';
 import 'package:difychatbot/utils/string_capitalize.dart';
 import 'package:difychatbot/constants/app_colors.dart';
 import 'package:difychatbot/services/n8n/prompt_api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/chat_message.dart';
 import '../models/me_response.dart';
 import '../components/index.dart';
@@ -19,8 +22,21 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
 
   // AI Provider Selection
   String _selectedProvider = 'DIFY'; // 'DIFY' atau 'N8N'
+  String _selectedModel = 'TSEL-Chatbot'; // Default model
   final meAPI _meAPI = meAPI();
   final PromptApiService _promptApiService = PromptApiService();
+
+  // Available models
+  final List<String> _availableModels = [
+    'TSEL-Chatbot',
+    'TSEL-Lerning-Based',
+    'TSEL-PDF-Agent',
+    'TSEL-Image-Generator',
+    'TSEL-Company-Agent',
+  ];
+
+  // File upload state
+  PlatformFile? _selectedFile;
 
   // User data variables
   UserData? currentUser;
@@ -166,45 +182,132 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
   }
 
   void _sendMessage() async {
-    if (_messageController.text.trim().isEmpty) return;
+    String message = _messageController.text.trim();
 
-    final userMessage = _messageController.text.trim();
+    // For TSEL Learning Based, only file upload is required (no text message needed)
+    if (_selectedModel == 'TSEL-Lerning-Based') {
+      if (_selectedFile == null) {
+        // Show message that PDF is required for Learning Based model
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Silakan upload file PDF untuk materi pembelajaran'),
+            backgroundColor: AppColors.error,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+      // For Learning Based, we only process the file, no text message required
+    } else {
+      // For other models, at least text message OR file is required
+      if (message.isEmpty && _selectedFile == null) return;
+    }
+
+    final userMessage = message;
 
     // Tambahkan pesan user ke UI
     setState(() {
-      messages.add(
-        ChatMessage(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          text: userMessage,
-          isUser: true,
-          timestamp: DateTime.now(),
-        ),
-      );
+      if (_selectedModel == 'TSEL-PDF-Agent' && _selectedFile != null) {
+        // For PDF Agent, combine text and file in one bubble
+        messages.add(
+          ChatMessage(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            text: userMessage.isNotEmpty ? userMessage : '',
+            isUser: true,
+            timestamp: DateTime.now(),
+            fileName: _selectedFile!.name,
+            fileType: 'pdf',
+          ),
+        );
+      } else {
+        // For other models, handle separately
+        // Only add text message if it's not empty
+        if (message.isNotEmpty) {
+          messages.add(
+            ChatMessage(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              text: userMessage,
+              isUser: true,
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
+
+        // Add file attachment info if exists
+        if (_selectedFile != null) {
+          String fileMessage = '';
+          if (_selectedModel == 'TSEL-Lerning-Based') {
+            fileMessage = '📚 Materi pembelajaran: ${_selectedFile!.name}';
+          } else {
+            fileMessage = '📎 File uploaded: ${_selectedFile!.name}';
+          }
+
+          messages.add(
+            ChatMessage(
+              id: DateTime.now().millisecondsSinceEpoch.toString() + '_file',
+              text: fileMessage,
+              isUser: true,
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
+      }
+
       isAiThinking = true; // Mulai loading AI
     });
 
     _messageController.clear();
+    final tempFile = _selectedFile;
+    _selectedFile = null; // Clear selected file
     _scrollToBottom();
 
     try {
-      String response = '';
+      // Handle different response types
+      Uint8List? imageData;
+      bool isImageGenerated = false;
+      String textResponse = '';
 
-      // Gunakan PromptApiService untuk mendapatkan respons AI
-      final promptResponse = await _promptApiService.postPrompt(
-        message: userMessage,
+      // Use model-specific API calls
+      // Using multipart form data (like Postman - more efficient)
+      final promptResponse = await _promptApiService.postPromptWithMultipart(
+        model: _selectedModel,
+        prompt: userMessage,
+        file: tempFile,
       );
 
       print("response: $promptResponse");
 
+      if (promptResponse != null) {
+        print("Response success: ${promptResponse.succes}");
+        print("Response content type: ${promptResponse.response.runtimeType}");
+        print("Response length: ${promptResponse.response.length}");
+        print(
+          "Response preview: ${promptResponse.response.length > 50 ? promptResponse.response.substring(0, 50) + '...' : promptResponse.response}",
+        );
+      }
+
       if (promptResponse != null && promptResponse.succes) {
-        // Gunakan response langsung karena sekarang response adalah String
-        response =
-            promptResponse.response.isNotEmpty
-                ? promptResponse.response
-                : 'Terima kasih atas pesan Anda. Saya telah memproses permintaan Anda.';
+        // Check if response is image data for TSEL-Image-Generator
+        if (_selectedModel == 'TSEL-Image-Generator') {
+          imageData = _tryParseImageResponse(promptResponse.response);
+          if (imageData != null && imageData.isNotEmpty) {
+            isImageGenerated = true;
+            textResponse =
+                'Gambar berhasil dibuat! Tap untuk melihat lebih detail.';
+          } else {
+            textResponse =
+                promptResponse.response.isNotEmpty
+                    ? promptResponse.response
+                    : 'Gambar sedang diproses, mohon tunggu...';
+          }
+        } else {
+          textResponse =
+              promptResponse.response.isNotEmpty
+                  ? promptResponse.response
+                  : _getDefaultResponse(_selectedModel, tempFile);
+        }
       } else {
-        // Jika PromptApiService gagal, tampilkan pesan error
-        response =
+        textResponse =
             'Maaf, tidak dapat terhubung ke AI assistant. Silakan coba lagi.';
       }
 
@@ -214,9 +317,11 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
         messages.add(
           ChatMessage(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            text: response,
+            text: textResponse,
             isUser: false,
             timestamp: DateTime.now(),
+            imageData: imageData,
+            isImageGenerated: isImageGenerated,
           ),
         );
       });
@@ -239,6 +344,17 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
       _scrollToBottom();
       print('Error sending message: $e');
     }
+  }
+
+  void _onFileSelected(PlatformFile file) {
+    setState(() {
+      if (file.name.isEmpty) {
+        // Clear file if empty file passed (used for removing file)
+        _selectedFile = null;
+      } else {
+        _selectedFile = file;
+      }
+    });
   }
 
   void _showNewChatConfirmation() {
@@ -371,6 +487,35 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
     return 'Guest User';
   }
 
+  // Helper method untuk mendapatkan default response berdasarkan model
+  String _getDefaultResponse(String model, PlatformFile? file) {
+    switch (model) {
+      case 'TSEL-PDF-Agent':
+        if (file != null) {
+          return "PDF berhasil dianalisis. Saya telah memproses dokumen ${file.name}. Ada yang ingin Anda tanyakan tentang isi dokumen ini?";
+        }
+        return 'Terima kasih atas pesan Anda. Saya siap membantu Anda menganalisis dokumen PDF.';
+
+      case 'TSEL-Lerning-Based':
+        if (file != null) {
+          return "Materi pembelajaran berhasil diupload! File ${file.name} telah saya proses dan siap untuk membantu pembelajaran Anda. Silakan tanyakan apa saja tentang materi ini.";
+        }
+        return 'Silakan upload file PDF sebagai materi pembelajaran.';
+
+      case 'TSEL-Chatbot':
+        return 'Terima kasih atas pesan Anda. Saya siap membantu menjawab pertanyaan Anda.';
+
+      case 'TSEL-Image-Generator':
+        return 'Permintaan gambar Anda sedang diproses. Mohon tunggu sebentar. Gambar akan muncul setelah selesai dibuat.';
+
+      case 'TSEL-Company-Agent':
+        return 'Terima kasih atas pertanyaan Anda tentang perusahaan. Saya siap membantu memberikan informasi yang Anda butuhkan.';
+
+      default:
+        return 'Terima kasih atas pesan Anda. Saya telah memproses permintaan Anda.';
+    }
+  }
+
   // Helper method untuk mendapatkan greeting message
   String getGreetingMessage() {
     if (currentUser != null) {
@@ -460,9 +605,18 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
                     ),
 
                     // Message Input Area
-                    MessageInput(
+                    MessageInputIntegrated(
                       controller: _messageController,
                       onSendMessage: _sendMessage,
+                      selectedModel: _selectedModel,
+                      availableModels: _availableModels,
+                      onModelChanged: (String newModel) {
+                        setState(() {
+                          _selectedModel = newModel;
+                        });
+                      },
+                      onFileSelected: _onFileSelected,
+                      selectedFile: _selectedFile,
                     ),
                   ],
                 ),
@@ -577,5 +731,106 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
         ],
       ),
     );
+  }
+
+  // Helper method to try parsing image response from API
+  Uint8List? _tryParseImageResponse(String response) {
+    try {
+      print('Trying to parse image response, length: ${response.length}');
+
+      // Case 1: Pure base64 string (most common from our N8N setup)
+      if (response.length > 100 &&
+          !response.contains('{') &&
+          !response.contains('"')) {
+        try {
+          print('Attempting to decode as pure base64 string');
+          final bytes = base64Decode(response);
+          print(
+            'Successfully decoded base64, image size: ${bytes.length} bytes',
+          );
+          return Uint8List.fromList(bytes);
+        } catch (e) {
+          print('Failed to decode as pure base64: $e');
+        }
+      }
+
+      // Case 2: Data URL format (data:image/jpeg;base64,...)
+      if (response.contains('data:image') && response.contains('base64,')) {
+        try {
+          print('Attempting to decode as data URL');
+          final base64String = response.split('base64,').last;
+          final bytes = base64Decode(base64String);
+          print(
+            'Successfully decoded data URL, image size: ${bytes.length} bytes',
+          );
+          return Uint8List.fromList(bytes);
+        } catch (e) {
+          print('Failed to decode data URL: $e');
+        }
+      }
+
+      // Case 3: JSON wrapped base64
+      if (response.trim().startsWith('{') && response.trim().endsWith('}')) {
+        try {
+          print('Attempting to decode as JSON');
+          final jsonData = json.decode(response);
+          if (jsonData is Map<String, dynamic>) {
+            // Look for common image data fields
+            final imageFields = [
+              'image',
+              'data',
+              'base64',
+              'image_data',
+              'result',
+              'file',
+            ];
+            for (final field in imageFields) {
+              if (jsonData.containsKey(field)) {
+                final imageValue = jsonData[field];
+                if (imageValue is String && imageValue.isNotEmpty) {
+                  try {
+                    String base64String = imageValue;
+                    if (base64String.contains('base64,')) {
+                      base64String = base64String.split('base64,').last;
+                    }
+                    final bytes = base64Decode(base64String);
+                    print(
+                      'Successfully decoded JSON field "$field", image size: ${bytes.length} bytes',
+                    );
+                    return Uint8List.fromList(bytes);
+                  } catch (e) {
+                    print('Error decoding image from field $field: $e');
+                    continue;
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          print('Failed to parse as JSON: $e');
+        }
+      }
+
+      // Case 4: Base64 with quotes (some APIs return this)
+      if (response.startsWith('"') && response.endsWith('"')) {
+        try {
+          print('Attempting to decode quoted base64');
+          final unquoted = response.substring(1, response.length - 1);
+          final bytes = base64Decode(unquoted);
+          print(
+            'Successfully decoded quoted base64, image size: ${bytes.length} bytes',
+          );
+          return Uint8List.fromList(bytes);
+        } catch (e) {
+          print('Failed to decode quoted base64: $e');
+        }
+      }
+
+      print('Could not parse response as image data');
+      return null;
+    } catch (e) {
+      print('Error parsing image response: $e');
+      return null;
+    }
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api/logout_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -51,17 +50,9 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (mounted) {
       if (isLoggedIn) {
-        // User is logged in, check if provider is selected
-        final prefs = await SharedPreferences.getInstance();
-        final selectedProvider = prefs.getString('selected_provider');
-
-        if (selectedProvider != null) {
-          // Provider already selected, navigate to home
-          Navigator.of(context).pushReplacementNamed('/home');
-        } else {
-          // Provider not selected, navigate to provider selection
-          Navigator.of(context).pushReplacementNamed('/provider-selection');
-        }
+        // User is logged in, always navigate to provider selection
+        // Let user choose or confirm their provider choice
+        Navigator.of(context).pushReplacementNamed('/provider-selection');
       } else {
         // User is not logged in, navigate to login
         Navigator.of(context).pushReplacementNamed('/login');
@@ -115,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     // App Name
                     Text(
-                      'AuthApp',
+                      'Tsel AI-Assistant',
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -128,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     // App Tagline
                     Text(
-                      'Secure Authentication Made Simple',
+                      'Your AI-Powered Assistant',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey[600],
