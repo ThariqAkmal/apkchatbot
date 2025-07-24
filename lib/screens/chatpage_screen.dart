@@ -4,17 +4,16 @@ import 'package:difychatbot/constants/app_colors.dart';
 import 'package:difychatbot/services/n8n/prompt_api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/api/logout_service.dart';
 import '../models/chat_message.dart';
 import '../models/me_response.dart';
 import '../components/index.dart';
 
-class HomeScreen extends StatefulWidget {
+class ChatPageScreen extends StatefulWidget {
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _ChatPageScreenState createState() => _ChatPageScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _ChatPageScreenState extends State<ChatPageScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -44,49 +43,61 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    initUser().then((_) {
-      // Update initial message after user data is loaded
-      if (currentUser != null) {
-        setState(() {
-          messages[0] = ChatMessage(
-            id: '1',
-            text: getGreetingMessage(),
-            isUser: false,
-            timestamp: DateTime.now().subtract(Duration(minutes: 5)),
-          );
-        });
-      }
+    _loadSelectedProvider().then((_) {
+      initUser().then((_) {
+        // Update initial message after user data is loaded
+        if (currentUser != null) {
+          setState(() {
+            messages[0] = ChatMessage(
+              id: '1',
+              text: getGreetingMessage(),
+              isUser: false,
+              timestamp: DateTime.now().subtract(Duration(minutes: 5)),
+            );
+          });
+        }
+      });
     });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadSelectedProvider();
+    // Provider loading dipindah ke initState
   }
 
-  bool _hasLoadedProvider = false;
-
   Future<void> _loadSelectedProvider() async {
-    if (_hasLoadedProvider) return;
-    _hasLoadedProvider = true;
-
-    // Get provider from route arguments or SharedPreferences
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null && args['provider'] != null) {
-      setState(() {
-        _selectedProvider = args['provider'];
-      });
-    } else {
-      // Fallback to SharedPreferences
+    try {
+      // Get provider from SharedPreferences first
       final prefs = await SharedPreferences.getInstance();
       final savedProvider = prefs.getString('selected_provider');
+      print("Provider from SharedPreferences: $savedProvider"); // Debug
+
       if (savedProvider != null) {
         setState(() {
           _selectedProvider = savedProvider;
         });
+        print(
+          "Provider loaded from SharedPreferences: $_selectedProvider",
+        ); // Debug
+        return;
       }
+
+      // Fallback: Get provider from route arguments
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['provider'] != null) {
+        print("Provider from args: ${args['provider']}"); // Debug
+        setState(() {
+          _selectedProvider = args['provider'];
+        });
+        print("Provider loaded from args: $_selectedProvider"); // Debug
+        return;
+      }
+
+      print("No provider found, using default: $_selectedProvider"); // Debug
+    } catch (e) {
+      print("Error loading provider: $e"); // Debug
     }
   }
 
@@ -230,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showClearChatConfirmation() {
+  void _showNewChatConfirmation() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -239,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return AlertDialog(
               backgroundColor: AppColors.secondaryBackground,
               title: Text(
-                'Hapus Chat',
+                'Percakapan Baru',
                 style: TextStyle(color: AppColors.primaryText),
               ),
               content: Column(
@@ -250,10 +261,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         children: [
-                          CircularProgressIndicator(color: AppColors.warning),
+                          CircularProgressIndicator(color: AppColors.accent),
                           SizedBox(height: 8),
                           Text(
-                            'Menghapus chat...',
+                            'Membuat percakapan baru...',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.secondaryTextLight,
@@ -264,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   else
                     Text(
-                      'Apakah Anda yakin ingin menghapus semua riwayat chat? Tindakan ini tidak dapat dibatalkan.',
+                      'Apakah Anda ingin membuat percakapan baru?',
                       style: TextStyle(
                         color: AppColors.secondaryTextLight,
                         fontSize: 16,
@@ -282,12 +293,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () => _clearChatWithLoading(setDialogState),
+                    onPressed: () => _createNewChatWithLoading(setDialogState),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.warning,
+                      backgroundColor: AppColors.accent,
                       foregroundColor: AppColors.primaryText,
                     ),
-                    child: Text('Hapus'),
+                    child: Text('Ya, Buat Baru'),
                   ),
                 ],
               ],
@@ -298,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _clearChatWithLoading(StateSetter setDialogState) async {
+  Future<void> _createNewChatWithLoading(StateSetter setDialogState) async {
     // Mulai loading
     setDialogState(() {
       isClearingChat = true;
@@ -308,10 +319,10 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // Simulasi proses hapus chat
+      // Simulasi proses buat percakapan baru
       await Future.delayed(Duration(milliseconds: 1000));
 
-      // Clear chat dan kembali ke greeting message
+      // Clear chat dan kembali ke greeting message (sama seperti clear chat tapi dengan pesan yang berbeda)
       setState(() {
         messages.clear();
         messages.add(
@@ -381,196 +392,190 @@ class _HomeScreenState extends State<HomeScreen> {
         return false; // Mencegah pop default
       },
       child: Scaffold(
-      backgroundColor: AppColors.primaryBackground,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primaryText),
-          onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/provider-selection',
-              (route) => false,
-            );
-          },
-        ),
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                Icons.smart_toy,
+        backgroundColor: AppColors.primaryBackground,
+        drawer: _buildSidebar(),
+        appBar: AppBar(
+          leading: Builder(
+            builder:
+                (context) => IconButton(
+                  icon: Icon(Icons.menu, color: AppColors.primaryText),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+          ),
+          title: Center(
+            child: Text(
+              '${_selectedProvider.toUpperCase()} Provider',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
                 color: AppColors.primaryText,
-                size: 24,
               ),
             ),
-            SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isLoading ? 'Loading...' : getUserDisplayName(),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryText,
-                  ),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'Provider: ${_selectedProvider.toUpperCase()}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+          ),
+          backgroundColor: AppColors.secondaryBackground,
+          elevation: 2,
+          shadowColor: AppColors.secondaryTextDark.withValues(alpha: 0.2),
         ),
-        backgroundColor: AppColors.secondaryBackground,
-        elevation: 2,
-        shadowColor: AppColors.secondaryTextDark.withValues(alpha: 0.2),
-        actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: AppColors.secondaryTextLight),
-            color: AppColors.secondaryBackground,
-            onSelected: (value) async {
-              if (value == 'logout') {
-                // Gunakan LogoutService untuk logout dengan konfirmasi
-                await LogoutService.confirmLogout(context);
-              } else if (value == 'clear') {
-                _showClearChatConfirmation();
-              } else if (value == 'change_provider') {
-                // Navigate back to provider selection
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/provider-selection',
-                  (route) => false,
-                );
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return [
-                PopupMenuItem<String>(
-                  value: 'change_provider',
-                  child: Row(
+        body:
+            isLoading
+                ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.swap_horizontal_circle,
-                        color: AppColors.accent,
-                      ),
-                      SizedBox(width: 8),
+                      CircularProgressIndicator(color: AppColors.accent),
+                      SizedBox(height: 16),
                       Text(
-                        'Ganti Provider',
-                        style: TextStyle(color: AppColors.primaryText),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'clear',
-                  enabled: !isClearingChat,
-                  child: Row(
-                    children: [
-                      if (isClearingChat)
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.warning,
-                          ),
-                        )
-                      else
-                        Icon(Icons.clear_all, color: AppColors.warning),
-                      SizedBox(width: 8),
-                      Text(
-                        isClearingChat ? 'Menghapus Chat...' : 'Hapus Chat',
+                        'Memuat data pengguna...',
                         style: TextStyle(
-                          color:
-                              isClearingChat
-                                  ? AppColors.secondaryTextDark
-                                  : AppColors.primaryText,
+                          color: AppColors.secondaryTextLight,
+                          fontSize: 16,
                         ),
                       ),
                     ],
                   ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, color: AppColors.error),
-                      SizedBox(width: 8),
-                      Text(
-                        'Logout',
-                        style: TextStyle(color: AppColors.primaryText),
-                      ),
-                    ],
-                  ),
-                ),
-              ];
-            },
-          ),
-        ],
-      ),
-      body:
-          isLoading
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                )
+                : Column(
                   children: [
-                    CircularProgressIndicator(color: AppColors.accent),
-                    SizedBox(height: 16),
+                    // Chat Messages Area
+                    Expanded(
+                      child:
+                          messages.isEmpty && !isAiThinking
+                              ? ChatEmptyState()
+                              : ListView.builder(
+                                controller: _scrollController,
+                                padding: EdgeInsets.all(16),
+                                itemCount:
+                                    messages.length + (isAiThinking ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index == messages.length &&
+                                      isAiThinking) {
+                                    // Tampilkan thinking bubble di akhir
+                                    return ThinkingBubble();
+                                  }
+                                  return MessageBubble(
+                                    message: messages[index],
+                                  );
+                                },
+                              ),
+                    ),
+
+                    // Message Input Area
+                    MessageInput(
+                      controller: _messageController,
+                      onSendMessage: _sendMessage,
+                    ),
+                  ],
+                ),
+      ), // Penutup untuk WillPopScope
+    );
+  }
+
+  // Sidebar Widget
+  Widget _buildSidebar() {
+    return Drawer(
+      backgroundColor: AppColors.secondaryBackground,
+      child: ListView(
+        children: [
+          // Header dengan nama provider dan tombol close
+          Container(
+            height: 120,
+            color: AppColors.secondaryBackground,
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
                     Text(
-                      'Memuat data pengguna...',
+                      '${_selectedProvider.toUpperCase()} Provider',
                       style: TextStyle(
-                        color: AppColors.secondaryTextLight,
-                        fontSize: 16,
+                        color: AppColors.primaryText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
-              )
-              : Column(
-                children: [
-                  // Chat Messages Area
-                  Expanded(
-                    child:
-                        messages.isEmpty && !isAiThinking
-                            ? ChatEmptyState()
-                            : ListView.builder(
-                              controller: _scrollController,
-                              padding: EdgeInsets.all(16),
-                              itemCount:
-                                  messages.length + (isAiThinking ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == messages.length && isAiThinking) {
-                                  // Tampilkan thinking bubble di akhir
-                                  return ThinkingBubble();
-                                }
-                                return MessageBubble(message: messages[index]);
-                              },
-                            ),
-                  ),
-
-                  // Message Input Area
-                  MessageInput(
-                    controller: _messageController,
-                    onSendMessage: _sendMessage,
-                  ),
-                ],
               ),
-      ), // Penutup untuk WillPopScope
+            ),
+          ),
+
+          // Menu Items
+          ListTile(
+            leading: Icon(Icons.home, color: AppColors.accent),
+            title: Text('Home', style: TextStyle(color: AppColors.primaryText)),
+            onTap: () {
+              Navigator.pop(context); // Close drawer
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/provider-selection',
+                (route) => false,
+              );
+            },
+          ),
+
+          ListTile(
+            leading: Icon(Icons.add_comment, color: AppColors.accent),
+            title: Text(
+              'Percakapan Baru',
+              style: TextStyle(color: AppColors.primaryText),
+            ),
+            onTap: () {
+              Navigator.pop(context); // Close drawer
+              _showNewChatConfirmation();
+            },
+          ),
+
+          Divider(color: AppColors.secondaryTextDark.withValues(alpha: 0.3)),
+
+          // History Section
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'History',
+              style: TextStyle(
+                color: AppColors.secondaryTextLight,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+
+          // Placeholder untuk history items - nanti bisa diisi dengan actual chat history
+          // ListTile(
+          //   leading: Icon(
+          //     Icons.chat_bubble_outline,
+          //     color: AppColors.secondaryTextLight,
+          //   ),
+          //   title: Text(
+          //     'Chat hari ini',
+          //     style: TextStyle(
+          //       color: AppColors.secondaryTextLight,
+          //       fontSize: 14,
+          //     ),
+          //   ),
+          //   onTap: () {
+          //     Navigator.pop(context);
+          //     // TODO: Load specific chat history
+          //   },
+          // ),
+
+          // ListTile(
+          //   leading: Icon(Icons.history, color: AppColors.secondaryTextLight),
+          //   title: Text(
+          //     'Chat kemarin',
+          //     style: TextStyle(
+          //       color: AppColors.secondaryTextLight,
+          //       fontSize: 14,
+          //     ),
+          //   ),
+          //   onTap: () {
+          //     Navigator.pop(context);
+          //     // TODO: Load specific chat history
+          //   },
+          // ),
+        ],
+      ),
     );
   }
 }
