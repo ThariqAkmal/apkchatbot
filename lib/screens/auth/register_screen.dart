@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../home_screen.dart';
+import '../provider_selection_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -50,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (errorMessage == null) {
           // Registration berhasil
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => HomeScreen()),
+            MaterialPageRoute(builder: (context) => ProviderSelectionScreen()),
           );
         } else {
           // Registration gagal - tampilkan pesan error
