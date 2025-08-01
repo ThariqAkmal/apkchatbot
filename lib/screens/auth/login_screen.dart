@@ -1,7 +1,7 @@
+import 'package:difychatbot/services/api/login_api_service.dart';
+import 'package:difychatbot/services/api/me_api_service.dart';
+import 'package:difychatbot/constants/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
-import '../home_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,9 +15,43 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String emailErrorMessage = '';
+  String passErrorMessage = '';
+  bool mailIsError = false;
+  bool passIsError = false;
+  final LoginAPI _loginAPI = LoginAPI();
+  final meAPI _meAPI = meAPI();
+
+  @override
+  void initState() {
+    super.initState();
+    // Add listeners to clear error when user types
+    _emailController.addListener(_clearEmailError);
+    _passwordController.addListener(_clearPasswordError);
+  }
+
+  void _clearEmailError() {
+    if (mailIsError) {
+      setState(() {
+        mailIsError = false;
+        emailErrorMessage = '';
+      });
+    }
+  }
+
+  void _clearPasswordError() {
+    if (passIsError) {
+      setState(() {
+        passIsError = false;
+        passErrorMessage = '';
+      });
+    }
+  }
 
   @override
   void dispose() {
+    _emailController.removeListener(_clearEmailError);
+    _passwordController.removeListener(_clearPasswordError);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -26,76 +60,107 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
+        emailErrorMessage = '';
+        passErrorMessage = '';
+        mailIsError = false;
+        passIsError = false;
         _isLoading = true;
       });
 
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-        final errorMessage = await authProvider.login(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+        // Step 1: Call Login API
+        final loginResponse = await _loginAPI.login(
+          _emailController.text.trim(),
+          _passwordController.text,
         );
+
+        if (loginResponse == null) {
+          // Login failed - wrong credentials
+          setState(() {
+            _isLoading = false;
+            emailErrorMessage = 'Email atau password salah';
+            passErrorMessage = 'Email atau password salah';
+            mailIsError = true;
+            passIsError = true;
+          });
+
+          // Also show a snackbar for immediate feedback
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Email atau password salah. Silakan coba lagi.'),
+              backgroundColor: AppColors.error,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+
+        // Step 2: Call Me API to get user profile
+        final meResponse = await _meAPI.getUserProfile();
 
         setState(() {
           _isLoading = false;
         });
 
-        if (errorMessage == null) {
-          // Login berhasil
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => HomeScreen()),
+        if (meResponse != null && meResponse.data.isNotEmpty) {
+          // Both APIs successful - show success message then navigate
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Login berhasil! Selamat datang.'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
+            ),
           );
+
+          // Navigate to provider selection after a short delay
+          Future.delayed(Duration(milliseconds: 300), () {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/provider-selection',
+              (route) => false,
+            );
+          });
         } else {
-          // Login gagal - tampilkan pesan error
-          showDialog(
-            context: context,
-            builder:
-                (context) => AlertDialog(
-                  title: Text('Login Failed'),
-                  content: Text(errorMessage),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text('OK'),
-                    ),
-                  ],
-                ),
-          );
+          _showErrorDialog('Gagal mendapatkan data profil. Silakan coba lagi.');
         }
       } catch (e) {
         setState(() {
           _isLoading = false;
         });
 
-        showDialog(
-          context: context,
-          builder:
-              (context) => AlertDialog(
-                title: Text('Error'),
-                content: Text('Terjadi kesalahan: $e'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text('OK'),
-                  ),
-                ],
-              ),
-        );
+        _showErrorDialog('Oppps Terjadi kesalahan');
       }
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Error'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
+              ),
+            ],
+          ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.primaryBackground,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.all(24.0),
             child: Card(
               elevation: 2,
+              color: AppColors.secondaryBackground,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -113,12 +178,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            gradient: AppColors.primaryGradient,
                             borderRadius: BorderRadius.circular(40),
                           ),
                           child: Icon(
-                            Icons.person,
-                            color: Colors.grey.shade600,
+                            Icons.smart_toy,
+                            color: AppColors.primaryText,
                             size: 40,
                           ),
                         ),
@@ -130,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
+                            color: AppColors.primaryText,
                           ),
                         ),
                         SizedBox(height: 8),
@@ -138,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Sign in to your account',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey.shade600,
+                            color: AppColors.secondaryTextLight,
                           ),
                         ),
                         SizedBox(height: 32),
@@ -146,36 +211,55 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Email Field
                         TextFormField(
                           controller: _emailController,
+                          style: TextStyle(color: AppColors.primaryText),
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            labelStyle: TextStyle(color: Colors.grey.shade700),
+                            labelStyle: TextStyle(
+                              color:
+                                  mailIsError
+                                      ? AppColors.error
+                                      : AppColors.secondaryTextLight,
+                            ),
                             prefixIcon: Icon(
                               Icons.email_outlined,
-                              color: Colors.grey.shade600,
+                              color:
+                                  mailIsError
+                                      ? AppColors.error
+                                      : AppColors.secondaryTextLight,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.grey.shade300,
+                                color:
+                                    mailIsError
+                                        ? AppColors.error
+                                        : AppColors.secondaryTextDark,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.grey.shade300,
+                                color:
+                                    mailIsError
+                                        ? AppColors.error
+                                        : AppColors.secondaryTextDark,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.blue.shade600,
+                                color:
+                                    mailIsError
+                                        ? AppColors.error
+                                        : AppColors.accent,
                                 width: 2,
                               ),
                             ),
+                            errorText: mailIsError ? emailErrorMessage : null,
+                            errorStyle: TextStyle(color: AppColors.error),
                           ),
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          style: TextStyle(color: Colors.grey.shade800),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your email';
@@ -191,19 +275,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Password Field
                         TextFormField(
                           controller: _passwordController,
+                          style: TextStyle(color: AppColors.primaryText),
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            labelStyle: TextStyle(color: Colors.grey.shade700),
+                            labelStyle: TextStyle(
+                              color:
+                                  passIsError
+                                      ? AppColors.error
+                                      : AppColors.secondaryTextLight,
+                            ),
                             prefixIcon: Icon(
                               Icons.lock_outline,
-                              color: Colors.grey.shade600,
+                              color:
+                                  passIsError
+                                      ? AppColors.error
+                                      : AppColors.secondaryTextLight,
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
                                     ? Icons.visibility
                                     : Icons.visibility_off,
-                                color: Colors.grey.shade600,
+                                color:
+                                    passIsError
+                                        ? AppColors.error
+                                        : AppColors.secondaryTextLight,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -214,26 +310,36 @@ class _LoginScreenState extends State<LoginScreen> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.grey.shade300,
+                                color:
+                                    passIsError
+                                        ? AppColors.error
+                                        : AppColors.secondaryTextDark,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.grey.shade300,
+                                color:
+                                    passIsError
+                                        ? AppColors.error
+                                        : AppColors.secondaryTextDark,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.blue.shade600,
+                                color:
+                                    passIsError
+                                        ? AppColors.error
+                                        : AppColors.accent,
                                 width: 2,
                               ),
                             ),
+                            errorText: passIsError ? passErrorMessage : null,
+                            errorStyle: TextStyle(color: AppColors.error),
                           ),
                           obscureText: _obscurePassword,
                           textInputAction: TextInputAction.done,
-                          style: TextStyle(color: Colors.grey.shade800),
                           onFieldSubmitted: (_) => _login(),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -251,8 +357,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _login,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade600,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.accent,
+                              foregroundColor: AppColors.primaryText,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -265,7 +371,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       height: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Colors.white,
+                                        color: AppColors.primaryText,
                                       ),
                                     )
                                     : Text(
@@ -285,7 +391,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Text(
                               "Don't have an account? ",
-                              style: TextStyle(color: Colors.grey.shade600),
+                              style: TextStyle(
+                                color: AppColors.secondaryTextLight,
+                              ),
                             ),
                             TextButton(
                               onPressed: () {
@@ -299,7 +407,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 'Sign Up',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.blue.shade600,
+                                  color: AppColors.accent,
                                 ),
                               ),
                             ),

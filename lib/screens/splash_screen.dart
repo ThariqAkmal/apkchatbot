@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import 'auth/login_screen.dart';
-import 'home_screen.dart';
+import '../services/api/logout_service.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -46,17 +45,18 @@ class _SplashScreenState extends State<SplashScreen>
     // Wait for animation to complete
     await Future.delayed(Duration(seconds: 3));
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.checkAuthStatus();
+    // Check login status using LogoutService
+    final isLoggedIn = await LogoutService.isLoggedIn();
 
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder:
-              (context) =>
-                  authProvider.isAuthenticated ? HomeScreen() : LoginScreen(),
-        ),
-      );
+      if (isLoggedIn) {
+        // User is logged in, always navigate to provider selection
+        // Let user choose or confirm their provider choice
+        Navigator.of(context).pushReplacementNamed('/provider-selection');
+      } else {
+        // User is not logged in, navigate to login
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
     }
   }
 
@@ -106,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     // App Name
                     Text(
-                      'AuthApp',
+                      'Tsel AI-Assistant',
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -119,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     // App Tagline
                     Text(
-                      'Secure Authentication Made Simple',
+                      'Your AI-Powered Assistant',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey[600],
