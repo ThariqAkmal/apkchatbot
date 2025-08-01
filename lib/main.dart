@@ -3,13 +3,33 @@ import 'package:difychatbot/screens/chatpage_screen.dart';
 import 'package:difychatbot/screens/provider_selection_screen.dart';
 import 'package:difychatbot/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/n8n_chat_database.dart';
+import 'services/web_chat_service.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
   await dotenv.load(fileName: ".env");
+
+  // Initialize appropriate storage based on platform
+  if (kIsWeb) {
+    print('📱 Running on Web - Using SharedPreferences for chat history');
+    await WebChatService().loadCurrentConversation();
+  } else {
+    try {
+      await N8nChatDatabase().database;
+      print('✅ SQLite database initialized successfully');
+    } catch (e) {
+      print('⚠️ SQLite initialization failed: $e');
+    }
+  }
+
   runApp(const MyApp());
 }
 
