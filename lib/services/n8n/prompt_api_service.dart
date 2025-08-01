@@ -9,7 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:file_picker/file_picker.dart';
 
 class PromptApiService {
-  final String n8nUrl = dotenv.env['N8N_URL'].toString();
+  final String n8nUrl = dotenv.env['N8N_URL_DEV'].toString();
 
   // Helper method to get file bytes with fallback
   Future<List<int>?> _getFileBytes(PlatformFile file) async {
@@ -35,7 +35,7 @@ class PromptApiService {
   }
 
   Future<N8NModels?> postPrompt({String? message}) async {
-    final url = Uri.parse('$n8nUrl/webhook-test/model-02');
+    final url = Uri.parse(n8nUrl);
     final token = await _getToken();
     if (token == null) {
       return null; // Token tidak ditemukan
@@ -76,7 +76,7 @@ class PromptApiService {
     String? prompt,
     PlatformFile? file,
   }) async {
-    final url = Uri.parse('$n8nUrl/webhook-test/model-02');
+    final url = Uri.parse(n8nUrl);
     final token = await _getToken();
     if (token == null) {
       return null; // Token tidak ditemukan
@@ -270,7 +270,7 @@ class PromptApiService {
     String? prompt,
     PlatformFile? file,
   }) async {
-    final url = Uri.parse('$n8nUrl/webhook-test/model-02');
+    final url = Uri.parse(n8nUrl);
     final token = await _getToken();
     if (token == null) {
       return null; // Token tidak ditemukan
