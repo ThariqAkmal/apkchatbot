@@ -7,9 +7,11 @@ import 'package:difychatbot/services/n8n/prompt_api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import '../models/chat_message.dart';
 import '../models/me_response.dart';
 import '../components/index.dart';
+import '../services/web_chat_service.dart';
 
 class ChatPageScreen extends StatefulWidget {
   @override
@@ -25,6 +27,11 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
   String _selectedModel = 'TSEL-Chatbot'; // Default model
   final meAPI _meAPI = meAPI();
   final PromptApiService _promptApiService = PromptApiService();
+  final WebChatService _chatService = WebChatService();
+
+  // Chat History
+  List<Map<String, dynamic>> _conversationHistory = [];
+  bool _isLoadingHistory = false;
 
   // Available models
   final List<String> _availableModels = [
@@ -71,6 +78,8 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
               timestamp: DateTime.now().subtract(Duration(minutes: 5)),
             );
           });
+          // Load chat history setelah user data loaded
+          _loadChatHistory();
         }
       });
     });
@@ -326,6 +335,11 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
         );
       });
 
+      // Save to chat history if using N8N provider
+      if (_selectedProvider == 'N8N' && currentUser != null) {
+        await _saveChatToHistory(userMessage, textResponse);
+      }
+
       _scrollToBottom();
     } catch (e) {
       // Tampilkan pesan error
@@ -435,6 +449,13 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
     });
 
     try {
+      // Reset current conversation untuk N8N provider
+      if (_selectedProvider == 'N8N') {
+        await _chatService.setCurrentConversation(
+          0,
+        ); // Reset to no conversation
+      }
+
       // Simulasi proses buat percakapan baru
       await Future.delayed(Duration(milliseconds: 1000));
 
@@ -522,6 +543,195 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
       return 'Halo ${currentUser!.namaDepan}! Saya adalah AI assistant Anda. Bagaimana saya bisa membantu anda hari ini?';
     }
     return 'Halo! Saya adalah AI assistant Anda. Bagaimana saya bisa membantu anda hari ini?';
+  }
+
+  // Load chat history untuk sidebar
+  Future<void> _loadChatHistory() async {
+    if (currentUser == null || _selectedProvider != 'N8N') return;
+
+    setState(() {
+      _isLoadingHistory = true;
+    });
+
+    try {
+      final history = await _chatService.getConversationHistory(
+        currentUser!.id,
+      );
+      setState(() {
+        _conversationHistory = history;
+        _isLoadingHistory = false;
+      });
+      print('📚 Loaded ${history.length} conversations');
+    } catch (e) {
+      print('❌ Error loading chat history: $e');
+      setState(() {
+        _isLoadingHistory = false;
+      });
+    }
+  }
+
+  // Load conversation dari history
+  Future<void> _loadConversation(Map<String, dynamic> conversation) async {
+    try {
+      final conversationId = conversation['id'] as int;
+      final chatHistory = await _chatService.getChatHistory(conversationId);
+
+      setState(() {
+        messages.clear();
+        messages.addAll(chatHistory);
+
+        // Jika tidak ada pesan, tambahkan greeting
+        if (messages.isEmpty) {
+          messages.add(
+            ChatMessage(
+              id: '1',
+              text: getGreetingMessage(),
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
+      });
+
+      // Set current conversation
+      await _chatService.setCurrentConversation(conversationId);
+
+      print('📖 Loaded conversation: ${conversation['conversation_title']}');
+      _scrollToBottom();
+    } catch (e) {
+      print('❌ Error loading conversation: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error memuat conversation'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  // Helper method untuk format waktu "time ago"
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 7) {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} hari lalu';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} jam lalu';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} menit lalu';
+    } else {
+      return 'Baru saja';
+    }
+  }
+
+  // Dialog untuk konfirmasi hapus conversation
+  void _showDeleteConversationDialog(Map<String, dynamic> conversation) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.secondaryBackground,
+          title: Text(
+            'Hapus Percakapan',
+            style: TextStyle(color: AppColors.primaryText),
+          ),
+          content: Text(
+            'Apakah Anda yakin ingin menghapus percakapan "${conversation['conversation_title']}"?',
+            style: TextStyle(color: AppColors.secondaryTextLight),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Batal',
+                style: TextStyle(color: AppColors.secondaryTextLight),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _deleteConversation(conversation);
+              },
+              child: Text('Hapus', style: TextStyle(color: AppColors.error)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Method untuk hapus conversation
+  Future<void> _deleteConversation(Map<String, dynamic> conversation) async {
+    try {
+      // TODO: Implement delete conversation method in WebChatService
+      // For now, just remove from local list
+      setState(() {
+        _conversationHistory.removeWhere(
+          (conv) => conv['id'] == conversation['id'],
+        );
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Percakapan berhasil dihapus'),
+          backgroundColor: AppColors.accent,
+        ),
+      );
+    } catch (e) {
+      print('❌ Error deleting conversation: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error menghapus percakapan'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  // Save chat to history untuk N8N provider
+  Future<void> _saveChatToHistory(
+    String userMessage,
+    String botResponse,
+  ) async {
+    try {
+      // Pastikan ada conversation yang aktif atau buat yang baru
+      int conversationId;
+      if (_chatService.currentConversationId == null) {
+        conversationId = await _chatService.startNewConversation(
+          userId: currentUser!.id,
+          title: _generateConversationTitle(userMessage),
+        );
+        print('📝 Started new conversation: $conversationId');
+      } else {
+        conversationId = _chatService.currentConversationId!;
+      }
+
+      // Simpan user message dan bot response
+      await _chatService.sendMessage(
+        conversationId: conversationId,
+        message: userMessage,
+        userId: currentUser!.id,
+      );
+
+      print('💾 Chat saved to history');
+
+      // Reload history untuk update sidebar
+      _loadChatHistory();
+    } catch (e) {
+      print('❌ Error saving chat to history: $e');
+    }
+  }
+
+  // Generate conversation title dari first message
+  String _generateConversationTitle(String message) {
+    final cleanMessage = message.trim();
+    if (cleanMessage.length <= 30) {
+      return cleanMessage;
+    }
+    return '${cleanMessage.substring(0, 30)}...';
   }
 
   @override
@@ -685,49 +895,111 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
           // History Section
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              'History',
-              style: TextStyle(
-                color: AppColors.secondaryTextLight,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Row(
+              children: [
+                Text(
+                  'History',
+                  style: TextStyle(
+                    color: AppColors.secondaryTextLight,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (_selectedProvider == 'N8N') ...[
+                  Spacer(),
+                  if (_isLoadingHistory)
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.accent,
+                      ),
+                    )
+                  else
+                    IconButton(
+                      icon: Icon(Icons.refresh, size: 16),
+                      color: AppColors.accent,
+                      onPressed: _loadChatHistory,
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+                ],
+              ],
             ),
           ),
 
-          // Placeholder untuk history items - nanti bisa diisi dengan actual chat history
-          // ListTile(
-          //   leading: Icon(
-          //     Icons.chat_bubble_outline,
-          //     color: AppColors.secondaryTextLight,
-          //   ),
-          //   title: Text(
-          //     'Chat hari ini',
-          //     style: TextStyle(
-          //       color: AppColors.secondaryTextLight,
-          //       fontSize: 14,
-          //     ),
-          //   ),
-          //   onTap: () {
-          //     Navigator.pop(context);
-          //     // TODO: Load specific chat history
-          //   },
-          // ),
+          // Chat History List
+          if (_selectedProvider == 'N8N') ...[
+            if (_conversationHistory.isEmpty && !_isLoadingHistory)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'Belum ada riwayat chat',
+                  style: TextStyle(
+                    color: AppColors.secondaryTextLight,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              )
+            else
+              ..._conversationHistory.map((conversation) {
+                final title = conversation['conversation_title'] as String;
+                final updatedAt = DateTime.parse(
+                  conversation['updated_at'] as String,
+                );
+                final timeAgo = _getTimeAgo(updatedAt);
 
-          // ListTile(
-          //   leading: Icon(Icons.history, color: AppColors.secondaryTextLight),
-          //   title: Text(
-          //     'Chat kemarin',
-          //     style: TextStyle(
-          //       color: AppColors.secondaryTextLight,
-          //       fontSize: 14,
-          //     ),
-          //   ),
-          //   onTap: () {
-          //     Navigator.pop(context);
-          //     // TODO: Load specific chat history
-          //   },
-          // ),
+                return ListTile(
+                  leading: Icon(
+                    Icons.chat_bubble_outline,
+                    color: AppColors.secondaryTextLight,
+                    size: 20,
+                  ),
+                  title: Text(
+                    title.length > 25 ? '${title.substring(0, 25)}...' : title,
+                    style: TextStyle(
+                      color: AppColors.secondaryTextLight,
+                      fontSize: 13,
+                    ),
+                  ),
+                  subtitle: Text(
+                    timeAgo,
+                    style: TextStyle(
+                      color: AppColors.secondaryTextLight.withValues(
+                        alpha: 0.7,
+                      ),
+                      fontSize: 11,
+                    ),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    _loadConversation(conversation);
+                  },
+                  onLongPress: () {
+                    _showDeleteConversationDialog(conversation);
+                  },
+                );
+              }).toList(),
+          ] else ...[
+            // Untuk provider DIFY, tampilkan pesan bahwa history tidak tersedia
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'History hanya tersedia untuk N8N Provider',
+                style: TextStyle(
+                  color: AppColors.secondaryTextLight,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
