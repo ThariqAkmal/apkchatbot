@@ -9,7 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:file_picker/file_picker.dart';
 
 class PromptApiService {
-  final String n8nUrl = dotenv.env['N8N_URL_DEV'].toString();
+  final String n8nUrl = dotenv.env['N8N_URL_PROD'].toString();
   // final String n8nUrl = dotenv.env['N8N_TSEL_URL_DEV'].toString();
 
   // Helper method to get file bytes with fallback
