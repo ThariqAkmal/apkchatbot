@@ -319,8 +319,48 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
                   : _getDefaultResponse(_selectedModel, tempFile);
         }
       } else {
-        textResponse =
-            'Maaf, tidak dapat terhubung ke AI assistant. Silakan coba lagi.';
+        textResponse = '''# Koneksi Terputus 
+
+## Tidak dapat terhubung ke AI Assistant
+
+Maaf, saat ini **tidak dapat terhubung** ke AI assistant. 
+
+### Silakan coba:
+1. Periksa koneksi internet Anda
+2. Refresh halaman 
+3. Coba lagi dalam beberapa saat
+
+---
+
+_Jika masalah berlanjut, hubungi administrator sistem._
+
+### Contoh Format Markdown
+
+**Teks tebal** dan _teks miring_
+
+- Item list 1
+- Item list 2  
+- Item list 3
+
+```dart
+// Contoh kode
+print("Hello World!");
+```
+
+[Link ke Google](https://www.google.com)
+
+> Ini adalah quote block untuk informasi penting
+
+### Test Zoom dan Copy Features
+
+Gunakan **long press** pada pesan ini untuk:
+- 🔍 **Zoom In/Out** - Perbesar atau perkecil teks
+- 📋 **Copy** - Salin teks ke clipboard  
+- 🖼️ **Full Screen** - Lihat dalam mode layar penuh
+
+---
+
+*Testing markdown rendering dengan berbagai elemen*''';
       }
 
       // Tambahkan respons AI ke UI
