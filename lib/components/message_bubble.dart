@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import '../constants/app_colors.dart';
 import '../providers/auth_provider.dart';
 import '../models/chat_message.dart';
@@ -217,17 +218,96 @@ class _MessageBubbleState extends State<MessageBubble> {
                       Transform.scale(
                         scale: _textScale,
                         alignment: Alignment.centerLeft,
-                        child: SelectableText(
-                          widget.message.text,
-                          style: TextStyle(
-                            color:
-                                widget.message.isUser
-                                    ? AppColors.primaryText
-                                    : AppColors.primaryText,
-                            fontSize: 16,
-                            height: 1.4,
-                          ),
-                        ),
+                        child:
+                            widget.message.isUser
+                                ? SelectableText(
+                                  widget.message.text,
+                                  style: TextStyle(
+                                    color: AppColors.primaryText,
+                                    fontSize: 16,
+                                    height: 1.4,
+                                  ),
+                                )
+                                : MarkdownWidget(
+                                  data: widget.message.text,
+                                  selectable: true,
+                                  shrinkWrap: true,
+                                  config: MarkdownConfig(
+                                    configs: [
+                                      // H1 Configuration
+                                      H1Config(
+                                        style: TextStyle(
+                                          color: AppColors.primaryText,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                      // H2 Configuration
+                                      H2Config(
+                                        style: TextStyle(
+                                          color: AppColors.primaryText,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                      // H3 Configuration
+                                      H3Config(
+                                        style: TextStyle(
+                                          color: AppColors.primaryText,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                      // Paragraph Configuration
+                                      PConfig(
+                                        textStyle: TextStyle(
+                                          color: AppColors.primaryText,
+                                          fontSize: 16,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      // Code Configuration
+                                      CodeConfig(
+                                        style: TextStyle(
+                                          color: AppColors.primaryText,
+                                          backgroundColor:
+                                              AppColors.secondaryBackground,
+                                          fontFamily: 'monospace',
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      // Pre/Code block Configuration
+                                      PreConfig(
+                                        decoration: BoxDecoration(
+                                          color: AppColors.secondaryBackground,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.secondaryTextDark
+                                                .withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.all(12),
+                                        textStyle: TextStyle(
+                                          color: AppColors.primaryText,
+                                          fontFamily: 'monospace',
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      // Link Configuration
+                                      LinkConfig(
+                                        style: TextStyle(
+                                          color: AppColors.accent,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                       ),
                     ],
                     SizedBox(height: 4),
@@ -550,14 +630,99 @@ class _MessageBubbleState extends State<MessageBubble> {
                           child: Transform.scale(
                             scale: fullScreenTextScale,
                             alignment: Alignment.topLeft,
-                            child: SelectableText(
-                              widget.message.text,
-                              style: TextStyle(
-                                color: AppColors.primaryText,
-                                fontSize: 18,
-                                height: 1.6,
-                              ),
-                            ),
+                            child:
+                                widget.message.isUser
+                                    ? SelectableText(
+                                      widget.message.text,
+                                      style: TextStyle(
+                                        color: AppColors.primaryText,
+                                        fontSize: 18,
+                                        height: 1.6,
+                                      ),
+                                    )
+                                    : MarkdownWidget(
+                                      data: widget.message.text,
+                                      selectable: true,
+                                      shrinkWrap: true,
+                                      config: MarkdownConfig(
+                                        configs: [
+                                          // H1 Configuration
+                                          H1Config(
+                                            style: TextStyle(
+                                              color: AppColors.primaryText,
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                          // H2 Configuration
+                                          H2Config(
+                                            style: TextStyle(
+                                              color: AppColors.primaryText,
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                              height: 1.3,
+                                            ),
+                                          ),
+                                          // H3 Configuration
+                                          H3Config(
+                                            style: TextStyle(
+                                              color: AppColors.primaryText,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w600,
+                                              height: 1.3,
+                                            ),
+                                          ),
+                                          // Paragraph Configuration
+                                          PConfig(
+                                            textStyle: TextStyle(
+                                              color: AppColors.primaryText,
+                                              fontSize: 18,
+                                              height: 1.6,
+                                            ),
+                                          ),
+                                          // Code Configuration
+                                          CodeConfig(
+                                            style: TextStyle(
+                                              color: AppColors.primaryText,
+                                              backgroundColor:
+                                                  AppColors.secondaryBackground,
+                                              fontFamily: 'monospace',
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          // Pre/Code block Configuration
+                                          PreConfig(
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  AppColors.primaryBackground,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: AppColors
+                                                    .secondaryTextDark
+                                                    .withValues(alpha: 0.3),
+                                              ),
+                                            ),
+                                            padding: EdgeInsets.all(16),
+                                            textStyle: TextStyle(
+                                              color: AppColors.primaryText,
+                                              fontFamily: 'monospace',
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          // Link Configuration
+                                          LinkConfig(
+                                            style: TextStyle(
+                                              color: AppColors.accent,
+                                              decoration:
+                                                  TextDecoration.underline,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                           ),
                         ),
                       ),
