@@ -80,6 +80,9 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
           });
           // Load chat history setelah user data loaded
           _loadChatHistory();
+
+          // Auto create new conversation jika provider N8N dan belum ada current conversation
+          _autoCreateNewConversationIfNeeded();
         }
       });
     });
@@ -449,17 +452,28 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
     });
 
     try {
-      // Reset current conversation untuk N8N provider
-      if (_selectedProvider == 'N8N') {
-        await _chatService.setCurrentConversation(
-          0,
-        ); // Reset to no conversation
+      // Untuk N8N provider, reset current conversation dan siapkan untuk conversation baru
+      if (_selectedProvider == 'N8N' && currentUser != null) {
+        // Reset current conversation ID untuk memastikan conversation baru akan dibuat
+        _chatService.setCurrentConversation(0); // Clear current conversation
+
+        // Buat conversation baru dengan greeting message
+        final newConversationId = await _chatService.startNewConversation(
+          userId: currentUser!.id,
+          title:
+              'Percakapan Baru ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+        );
+
+        print('🆕 Created new conversation: $newConversationId');
+
+        // Set sebagai conversation aktif
+        await _chatService.setCurrentConversation(newConversationId);
       }
 
       // Simulasi proses buat percakapan baru
-      await Future.delayed(Duration(milliseconds: 1000));
+      await Future.delayed(Duration(milliseconds: 500));
 
-      // Clear chat dan kembali ke greeting message (sama seperti clear chat tapi dengan pesan yang berbeda)
+      // Clear chat dan kembali ke greeting message
       setState(() {
         messages.clear();
         messages.add(
@@ -473,6 +487,11 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
         isClearingChat = false;
       });
 
+      // Reload chat history untuk menampilkan conversation baru di sidebar
+      if (_selectedProvider == 'N8N' && mounted) {
+        _loadChatHistory();
+      }
+
       // Tutup dialog
       Navigator.pop(context);
 
@@ -480,6 +499,7 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
       _scrollToBottom();
     } catch (e) {
       // Jika terjadi error
+      print('❌ Error creating new conversation: $e');
       setState(() {
         isClearingChat = false;
       });
@@ -547,26 +567,42 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
 
   // Load chat history untuk sidebar
   Future<void> _loadChatHistory() async {
-    if (currentUser == null || _selectedProvider != 'N8N') return;
+    if (currentUser == null || _selectedProvider != 'N8N' || !mounted) return;
 
-    setState(() {
-      _isLoadingHistory = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoadingHistory = true;
+      });
+    }
 
     try {
       final history = await _chatService.getConversationHistory(
         currentUser!.id,
       );
-      setState(() {
-        _conversationHistory = history;
-        _isLoadingHistory = false;
+
+      // Sort history berdasarkan waktu terbaru (updated_at) - terbaru di atas
+      history.sort((a, b) {
+        final aTime = DateTime.parse(a['updated_at'] as String);
+        final bTime = DateTime.parse(b['updated_at'] as String);
+        return bTime.compareTo(aTime); // Descending order (terbaru di atas)
       });
-      print('📚 Loaded ${history.length} conversations');
+
+      if (mounted) {
+        setState(() {
+          _conversationHistory = history;
+          _isLoadingHistory = false;
+        });
+      }
+      print(
+        '📚 Loaded ${history.length} conversations (sorted by newest first)',
+      );
     } catch (e) {
       print('❌ Error loading chat history: $e');
-      setState(() {
-        _isLoadingHistory = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingHistory = false;
+        });
+      }
     }
   }
 
@@ -718,8 +754,10 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
 
       print('💾 Chat saved to history');
 
-      // Reload history untuk update sidebar
-      _loadChatHistory();
+      // Reload history untuk update sidebar - hanya jika mounted
+      if (mounted) {
+        _loadChatHistory();
+      }
     } catch (e) {
       print('❌ Error saving chat to history: $e');
     }
@@ -732,6 +770,51 @@ class _ChatPageScreenState extends State<ChatPageScreen> {
       return cleanMessage;
     }
     return '${cleanMessage.substring(0, 30)}...';
+  }
+
+  // Auto create new conversation jika diperlukan (untuk N8N provider)
+  Future<void> _autoCreateNewConversationIfNeeded() async {
+    if (_selectedProvider != 'N8N' || currentUser == null) return;
+
+    try {
+      // Cek apakah user datang dari provider selection (mengindikasikan session baru)
+      final prefs = await SharedPreferences.getInstance();
+      final lastProvider = prefs.getString('last_used_provider');
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+      final lastVisitTime = prefs.getInt('last_n8n_visit_time') ?? 0;
+
+      // Jika belum pernah visit N8N atau sudah lewat dari 5 menit, buat conversation baru
+      final shouldCreateNew =
+          lastProvider != 'N8N' ||
+          (currentTime - lastVisitTime) > 300000; // 5 menit
+
+      if (shouldCreateNew) {
+        // Selalu buat conversation baru ketika user baru memilih N8N
+        final newConversationId = await _chatService.startNewConversation(
+          userId: currentUser!.id,
+          title:
+              'Percakapan ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+        );
+
+        await _chatService.setCurrentConversation(newConversationId);
+        print('🆕 Auto-created new conversation: $newConversationId');
+
+        // Update last visit info
+        await prefs.setString('last_used_provider', 'N8N');
+        await prefs.setInt('last_n8n_visit_time', currentTime);
+
+        // Reload history untuk update sidebar
+        _loadChatHistory();
+      } else {
+        // Load existing conversation jika masih dalam session yang sama
+        await _chatService.loadCurrentConversation();
+        print(
+          '📖 Continuing existing conversation: ${_chatService.currentConversationId}',
+        );
+      }
+    } catch (e) {
+      print('❌ Error auto-creating conversation: $e');
+    }
   }
 
   @override
