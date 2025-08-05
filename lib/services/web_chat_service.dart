@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message.dart';
 import '../services/n8n/prompt_api_service.dart';
@@ -91,8 +90,6 @@ class WebChatService {
     if (conversationId == null) {
       conversationId = await startNewConversation(userId: userId);
     }
-
-    final prefs = await SharedPreferences.getInstance();
 
     // Save user message
     await _saveMessageToStorage(

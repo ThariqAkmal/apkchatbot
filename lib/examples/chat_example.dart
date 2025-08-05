@@ -1,5 +1,4 @@
 import '../services/n8n_chat_service.dart';
-import '../models/chat_message.dart';
 
 class ChatExample {
   final N8nChatService _chatService = N8nChatService();
