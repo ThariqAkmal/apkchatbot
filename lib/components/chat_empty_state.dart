@@ -14,28 +14,46 @@ class ChatEmptyState extends StatelessWidget {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              gradient: AppColors.backgroundGradient,
-              borderRadius: BorderRadius.circular(60),
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.gradientStart.withOpacity(0.3),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                ),
+              ],
             ),
             child: Icon(
-              Icons.chat_bubble_outline,
+              Icons.auto_awesome,
               size: 60,
-              color: AppColors.secondaryTextLight,
+              color: AppColors.whiteText,
             ),
           ),
-          SizedBox(height: 24),
+          SizedBox(height: 32),
+          ShaderMask(
+            shaderCallback:
+                (bounds) => AppColors.primaryGradient.createShader(bounds),
+            child: Text(
+              'Start Conversation',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: AppColors.whiteText,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+          SizedBox(height: 12),
           Text(
-            'Mulai Percakapan',
+            'Send a message to start chatting with your AI Assistant',
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primaryText,
+              fontSize: 16,
+              color: AppColors.secondaryText,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
             ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Kirim pesan untuk memulai chat dengan AI Assistant',
-            style: TextStyle(fontSize: 16, color: AppColors.secondaryTextLight),
             textAlign: TextAlign.center,
           ),
         ],

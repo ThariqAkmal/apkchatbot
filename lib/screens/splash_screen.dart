@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api/logout_service.dart';
+import '../constants/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -63,97 +64,163 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: AnimatedBuilder(
-          animation: _animationController,
-          builder: (context, child) {
-            return FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // App Logo
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Colors.blue, Colors.blue.shade700],
+      backgroundColor: AppColors.primaryBackground,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.primaryBackground,
+              AppColors.secondaryBackground,
+            ],
+          ),
+        ),
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              return FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // App Logo with Modern Design
+                      Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.gradientStart.withOpacity(0.3),
+                              spreadRadius: 0,
+                              blurRadius: 20,
+                              offset: Offset(0, 8),
+                            ),
+                            BoxShadow(
+                              color: AppColors.gradientEnd.withOpacity(0.2),
+                              spreadRadius: 0,
+                              blurRadius: 40,
+                              offset: Offset(0, 16),
+                            ),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(60),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.blue.withValues(alpha: 0.3),
-                            spreadRadius: 4,
-                            blurRadius: 20,
-                            offset: Offset(0, 10),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 140,
+                            height: 140,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              // Modern fallback design
+                              return Container(
+                                width: 140,
+                                height: 140,
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  borderRadius: BorderRadius.circular(28),
+                                ),
+                                child: Icon(
+                                  Icons.auto_awesome,
+                                  color: AppColors.whiteText,
+                                  size: 64,
+                                ),
+                              );
+                            },
                           ),
-                        ],
+                        ),
                       ),
-                      child: Icon(
-                        Icons.security,
-                        color: Colors.white,
-                        size: 60,
+
+                      SizedBox(height: 40),
+
+                      // App Name with Modern Typography
+                      Text(
+                        'Tsel AI-Assistant',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primaryText,
+                          letterSpacing: -0.5,
+                          height: 1.1,
+                        ),
                       ),
-                    ),
 
-                    SizedBox(height: 32),
+                      SizedBox(height: 8),
 
-                    // App Name
-                    Text(
-                      'Tsel AI-Assistant',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
-                        letterSpacing: 1.2,
+                      // App Tagline with Gradient Text Effect
+                      ShaderMask(
+                        shaderCallback:
+                            (bounds) =>
+                                AppColors.primaryGradient.createShader(bounds),
+                        child: Text(
+                          'Your AI-Powered Assistant',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.whiteText,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
-                    ),
 
-                    SizedBox(height: 8),
+                      SizedBox(height: 60),
 
-                    // App Tagline
-                    Text(
-                      'Your AI-Powered Assistant',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
+                      // Modern Loading Indicator
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.shadowMedium,
+                              spreadRadius: 0,
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.gradientMiddle,
+                                ),
+                                backgroundColor: AppColors.borderLight,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
 
-                    SizedBox(height: 48),
+                      SizedBox(height: 24),
 
-                    // Loading Indicator
-                    SizedBox(
-                      width: 30,
-                      height: 30,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                      Text(
+                        'Loading...',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.secondaryText,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.3,
+                        ),
                       ),
-                    ),
-
-                    SizedBox(height: 16),
-
-                    Text(
-                      'Loading...',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

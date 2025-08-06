@@ -440,7 +440,7 @@ Gunakan **long press** pada pesan ini untuk:
                             'Membuat percakapan baru...',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppColors.secondaryTextLight,
+                              color: AppColors.secondaryText,
                             ),
                           ),
                         ],
@@ -450,7 +450,7 @@ Gunakan **long press** pada pesan ini untuk:
                     Text(
                       'Apakah Anda ingin membuat percakapan baru?',
                       style: TextStyle(
-                        color: AppColors.secondaryTextLight,
+                        color: AppColors.secondaryText,
                         fontSize: 16,
                       ),
                     ),
@@ -462,7 +462,7 @@ Gunakan **long press** pada pesan ini untuk:
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       'Batal',
-                      style: TextStyle(color: AppColors.secondaryTextLight),
+                      style: TextStyle(color: AppColors.secondaryText),
                     ),
                   ),
                   ElevatedButton(
@@ -716,14 +716,14 @@ Gunakan **long press** pada pesan ini untuk:
           ),
           content: Text(
             'Apakah Anda yakin ingin menghapus percakapan "${conversation['conversation_title']}"?',
-            style: TextStyle(color: AppColors.secondaryTextLight),
+            style: TextStyle(color: AppColors.secondaryText),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'Batal',
-                style: TextStyle(color: AppColors.secondaryTextLight),
+                style: TextStyle(color: AppColors.secondaryText),
               ),
             ),
             TextButton(
@@ -876,23 +876,49 @@ Gunakan **long press** pada pesan ini untuk:
           leading: Builder(
             builder:
                 (context) => IconButton(
-                  icon: Icon(Icons.menu, color: AppColors.primaryText),
+                  icon: Container(
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.subtleGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.menu_rounded,
+                      color: AppColors.gradientStart,
+                      size: 20,
+                    ),
+                  ),
                   onPressed: () => Scaffold.of(context).openDrawer(),
                 ),
           ),
-          title: Center(
+          title: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.gradientStart.withOpacity(0.2),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
             child: Text(
-              '${_selectedProvider.toUpperCase()} Provider',
+              '${_selectedProvider.toUpperCase()} Assistant',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryText,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.whiteText,
+                letterSpacing: 0.3,
               ),
             ),
           ),
-          backgroundColor: AppColors.secondaryBackground,
-          elevation: 2,
-          shadowColor: AppColors.secondaryTextDark.withValues(alpha: 0.2),
+          centerTitle: true,
+          backgroundColor: AppColors.primaryBackground,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
         ),
         body:
             isLoading
@@ -905,7 +931,7 @@ Gunakan **long press** pada pesan ini untuk:
                       Text(
                         'Memuat data pengguna...',
                         style: TextStyle(
-                          color: AppColors.secondaryTextLight,
+                          color: AppColors.secondaryText,
                           fontSize: 16,
                         ),
                       ),
@@ -928,9 +954,9 @@ Gunakan **long press** pada pesan ini untuk:
                                   if (index == messages.length &&
                                       isAiThinking) {
                                     // Tampilkan thinking bubble di akhir
-                                    return ThinkingBubble();
+                                    return ModernThinkingBubble();
                                   }
-                                  return MessageBubble(
+                                  return ModernMessageBubble(
                                     message: messages[index],
                                   );
                                 },
@@ -960,170 +986,354 @@ Gunakan **long press** pada pesan ini untuk:
   // Sidebar Widget
   Widget _buildSidebar() {
     return Drawer(
-      backgroundColor: AppColors.secondaryBackground,
-      child: ListView(
-        children: [
-          // Header dengan nama provider dan tombol close
-          Container(
-            height: 120,
-            color: AppColors.secondaryBackground,
-            child: SafeArea(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
+      backgroundColor: AppColors.primaryBackground,
+      width: 300,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.primaryBackground, AppColors.cardBackground],
+          ),
+        ),
+        child: ListView(
+          children: [
+            // Modern Header
+            Container(
+              height: 140,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.whiteText,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.auto_awesome,
+                              color: AppColors.gradientMiddle,
+                              size: 24,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '${_selectedProvider.toUpperCase()} Assistant',
+                              style: TextStyle(
+                                color: AppColors.whiteText,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'AI-Powered Conversations',
+                        style: TextStyle(
+                          color: AppColors.whiteText.withOpacity(0.8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            // Menu Items with Modern Design
+            _buildSidebarItem(
+              icon: Icons.home_rounded,
+              title: 'Home',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/provider-selection',
+                  (route) => false,
+                );
+              },
+            ),
+
+            _buildSidebarItem(
+              icon: Icons.add_circle_outline_rounded,
+              title: 'New Conversation',
+              onTap: () {
+                Navigator.pop(context);
+                _showNewChatConfirmation();
+              },
+            ),
+
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              height: 1,
+              decoration: BoxDecoration(gradient: AppColors.subtleGradient),
+            ),
+
+            // History Section
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.subtleGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.history_rounded,
+                      size: 16,
+                      color: AppColors.gradientStart,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Chat History',
+                    style: TextStyle(
+                      color: AppColors.primaryText,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  if (_selectedProvider == 'N8N') ...[
+                    Spacer(),
+                    if (_isLoadingHistory)
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.gradientMiddle,
+                        ),
+                      )
+                    else
+                      IconButton(
+                        icon: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBackground,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Icon(
+                            Icons.refresh_rounded,
+                            size: 16,
+                            color: AppColors.gradientMiddle,
+                          ),
+                        ),
+                        onPressed: _loadChatHistory,
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Chat History List
+            if (_selectedProvider == 'N8N') ...[
+              if (_conversationHistory.isEmpty && !_isLoadingHistory)
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderLight, width: 1),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: AppColors.lightText,
+                        size: 32,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'No conversations yet',
+                        style: TextStyle(
+                          color: AppColors.secondaryText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Start a new conversation to begin',
+                        style: TextStyle(
+                          color: AppColors.lightText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ..._conversationHistory.map((conversation) {
+                  final title = conversation['conversation_title'] as String;
+                  final updatedAt = DateTime.parse(
+                    conversation['updated_at'] as String,
+                  );
+                  final timeAgo = _getTimeAgo(updatedAt);
+
+                  return Container(
+                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.subtleGradient,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          color: AppColors.gradientStart,
+                          size: 16,
+                        ),
+                      ),
+                      title: Text(
+                        title.length > 25
+                            ? '${title.substring(0, 25)}...'
+                            : title,
+                        style: TextStyle(
+                          color: AppColors.primaryText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        timeAgo,
+                        style: TextStyle(
+                          color: AppColors.secondaryText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _loadConversation(conversation);
+                      },
+                      onLongPress: () {
+                        _showDeleteConversationDialog(conversation);
+                      },
+                    ),
+                  );
+                }).toList(),
+            ] else ...[
+              // Untuk provider DIFY, tampilkan pesan modern
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.borderLight, width: 1),
+                ),
+                child: Column(
                   children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.subtleGradient,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        color: AppColors.gradientStart,
+                        size: 24,
+                      ),
+                    ),
+                    SizedBox(height: 12),
                     Text(
-                      '${_selectedProvider.toUpperCase()} Provider',
+                      'History Feature',
                       style: TextStyle(
                         color: AppColors.primaryText,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                       ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Chat history is only available for N8N Provider conversations.',
+                      style: TextStyle(
+                        color: AppColors.secondaryText,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-            ),
-          ),
-
-          // Menu Items
-          ListTile(
-            leading: Icon(Icons.home, color: AppColors.accent),
-            title: Text('Home', style: TextStyle(color: AppColors.primaryText)),
-            onTap: () {
-              Navigator.pop(context); // Close drawer
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/provider-selection',
-                (route) => false,
-              );
-            },
-          ),
-
-          ListTile(
-            leading: Icon(Icons.add_comment, color: AppColors.accent),
-            title: Text(
-              'Percakapan Baru',
-              style: TextStyle(color: AppColors.primaryText),
-            ),
-            onTap: () {
-              Navigator.pop(context); // Close drawer
-              _showNewChatConfirmation();
-            },
-          ),
-
-          Divider(color: AppColors.secondaryTextDark.withValues(alpha: 0.3)),
-
-          // History Section
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Text(
-                  'History',
-                  style: TextStyle(
-                    color: AppColors.secondaryTextLight,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (_selectedProvider == 'N8N') ...[
-                  Spacer(),
-                  if (_isLoadingHistory)
-                    SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.accent,
-                      ),
-                    )
-                  else
-                    IconButton(
-                      icon: Icon(Icons.refresh, size: 16),
-                      color: AppColors.accent,
-                      onPressed: _loadChatHistory,
-                      padding: EdgeInsets.zero,
-                      constraints: BoxConstraints(),
-                    ),
-                ],
-              ],
-            ),
-          ),
-
-          // Chat History List
-          if (_selectedProvider == 'N8N') ...[
-            if (_conversationHistory.isEmpty && !_isLoadingHistory)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'Belum ada riwayat chat',
-                  style: TextStyle(
-                    color: AppColors.secondaryTextLight,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              )
-            else
-              ..._conversationHistory.map((conversation) {
-                final title = conversation['conversation_title'] as String;
-                final updatedAt = DateTime.parse(
-                  conversation['updated_at'] as String,
-                );
-                final timeAgo = _getTimeAgo(updatedAt);
-
-                return ListTile(
-                  leading: Icon(
-                    Icons.chat_bubble_outline,
-                    color: AppColors.secondaryTextLight,
-                    size: 20,
-                  ),
-                  title: Text(
-                    title.length > 25 ? '${title.substring(0, 25)}...' : title,
-                    style: TextStyle(
-                      color: AppColors.secondaryTextLight,
-                      fontSize: 13,
-                    ),
-                  ),
-                  subtitle: Text(
-                    timeAgo,
-                    style: TextStyle(
-                      color: AppColors.secondaryTextLight.withValues(
-                        alpha: 0.7,
-                      ),
-                      fontSize: 11,
-                    ),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    _loadConversation(conversation);
-                  },
-                  onLongPress: () {
-                    _showDeleteConversationDialog(conversation);
-                  },
-                );
-              }).toList(),
-          ] else ...[
-            // Untuk provider DIFY, tampilkan pesan bahwa history tidak tersedia
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'History hanya tersedia untuk N8N Provider',
-                style: TextStyle(
-                  color: AppColors.secondaryTextLight,
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
+            ],
           ],
-        ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method for sidebar items
+  Widget _buildSidebarItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            gradient: AppColors.subtleGradient,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: AppColors.gradientStart, size: 20),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: AppColors.primaryText,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onTap: onTap,
       ),
     );
   }

@@ -104,7 +104,7 @@ class _MessageInputIntegratedState extends State<MessageInputIntegrated> {
                     decoration: BoxDecoration(
                       color: AppColors.primaryBackground,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.secondaryTextDark),
+                      border: Border.all(color: AppColors.lightText),
                     ),
                     child: Row(
                       children: [
@@ -141,7 +141,7 @@ class _MessageInputIntegratedState extends State<MessageInputIntegrated> {
                                   Icon(
                                     Icons.keyboard_arrow_down,
                                     size: 14,
-                                    color: AppColors.secondaryTextLight,
+                                    color: AppColors.secondaryText,
                                   ),
                                 ],
                               ),
@@ -186,7 +186,7 @@ class _MessageInputIntegratedState extends State<MessageInputIntegrated> {
                                 supportsFileUpload,
                               ),
                               hintStyle: TextStyle(
-                                color: AppColors.secondaryTextLight,
+                                color: AppColors.secondaryText,
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(20),
@@ -282,7 +282,7 @@ class _MessageInputIntegratedState extends State<MessageInputIntegrated> {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Batal',
-                style: TextStyle(color: AppColors.secondaryTextLight),
+                style: TextStyle(color: AppColors.secondaryText),
               ),
             ),
             TextButton(
