@@ -88,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text(
                       'Memuat profil...',
                       style: TextStyle(
-                        color: AppColors.secondaryTextLight,
+                        color: AppColors.secondaryText,
                         fontSize: 16,
                       ),
                     ),
@@ -156,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.secondaryTextDark.withOpacity(0.1),
+                            color: AppColors.lightText.withOpacity(0.1),
                             blurRadius: 8,
                             offset: Offset(0, 4),
                           ),
@@ -249,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Untuk mengubah informasi profil, silakan hubungi administrator.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.secondaryTextLight,
+                        color: AppColors.secondaryText,
                         fontStyle: FontStyle.italic,
                       ),
                       textAlign: TextAlign.center,
@@ -273,7 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: AppColors.secondaryTextLight,
+            color: AppColors.secondaryText,
           ),
         ),
         SizedBox(height: 8),
@@ -284,13 +284,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: AppColors.primaryBackground,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppColors.secondaryTextDark.withOpacity(0.2),
+              color: AppColors.lightText.withOpacity(0.2),
               width: 1,
             ),
           ),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: AppColors.secondaryTextDark),
+              Icon(icon, size: 20, color: AppColors.lightText),
               SizedBox(width: 12),
               Expanded(
                 child: Text(

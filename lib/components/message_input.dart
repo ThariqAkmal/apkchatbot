@@ -45,7 +45,7 @@ class MessageInput extends StatelessWidget {
                 color: AppColors.primaryBackground,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.secondaryTextDark.withValues(alpha: 0.3),
+                  color: AppColors.lightText.withValues(alpha: 0.3),
                 ),
               ),
               child: DropdownButtonHideUnderline(
@@ -54,7 +54,7 @@ class MessageInput extends StatelessWidget {
                   isExpanded: true,
                   icon: Icon(
                     Icons.keyboard_arrow_down,
-                    color: AppColors.secondaryTextLight,
+                    color: AppColors.secondaryText,
                     size: 16,
                   ),
                   style: TextStyle(
@@ -94,14 +94,14 @@ class MessageInput extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.primaryBackground,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.secondaryTextDark),
+                      border: Border.all(color: AppColors.lightText),
                     ),
                     child: TextField(
                       controller: controller,
                       decoration: InputDecoration(
                         hintText: 'Ketik pesan Anda...',
                         hintStyle: TextStyle(
-                          color: AppColors.secondaryTextLight,
+                          color: AppColors.secondaryText,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
