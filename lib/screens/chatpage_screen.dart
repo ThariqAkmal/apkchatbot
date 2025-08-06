@@ -919,6 +919,44 @@ Gunakan **long press** pada pesan ini untuk:
           backgroundColor: AppColors.primaryBackground,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
+          actions: [
+            Container(
+              margin: EdgeInsets.only(right: 16),
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBackground,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.gradientStart.withOpacity(0.1),
+                    spreadRadius: 0,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/images/tsel.png',
+                height: 52,
+                width: 52,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 52,
+                    width: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.gradientStart,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      Icons.business,
+                      size: 14,
+                      color: AppColors.whiteText,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
         body:
             isLoading
