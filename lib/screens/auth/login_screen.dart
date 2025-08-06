@@ -197,12 +197,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Modern Logo with Gradient
+                            // Modern Logo using assets/images/logo.png
                             Container(
                               width: 100,
                               height: 100,
                               decoration: BoxDecoration(
-                                gradient: AppColors.primaryGradient,
+                                color: AppColors.primaryBackground,
                                 borderRadius: BorderRadius.circular(24),
                                 boxShadow: [
                                   BoxShadow(
@@ -215,10 +215,25 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ],
                               ),
-                              child: Icon(
-                                Icons.auto_awesome,
-                                color: AppColors.whiteText,
-                                size: 48,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: Image.asset(
+                                  'assets/images/logo2.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        gradient: AppColors.primaryGradient,
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      child: Icon(
+                                        Icons.auto_awesome,
+                                        color: AppColors.whiteText,
+                                        size: 48,
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                             SizedBox(height: 32),
